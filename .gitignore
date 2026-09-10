@@ -1,0 +1,62 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+out/
+
+# Isolated development worktrees
+.worktrees/
+
+# Electron
+*.dmg
+*.pkg
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Claude Code
+.claude/
+
+# Local AI working memory
+.workbuddy/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Environment
+.env
+.env.local
+.env.*
+!.env.example
+.envrc
+.npmrc
+
+# Config (contains sensitive data)
+config.json
+.vps-proxy-manager/
+secrets*.json
+credentials*.json
+
+# Keys, certificates, and connection profiles
+.ssh/
+id_rsa*
+id_dsa*
+id_ecdsa*
+id_ed25519*
+*.pem
+*.key
+*.p12
+*.pfx
+*.ovpn
+*.mobileconfig
+
+# Local databases
+*.db
+*.sqlite*

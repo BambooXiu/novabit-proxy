@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; img-src 'self' data:;">
+  <title>NovaBit Proxy</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- 标题栏拖拽区域 -->
+  <div class="titlebar"></div>
+
+  <div class="app">
+    <!-- 侧边栏 -->
+    <nav class="sidebar">
+      <div class="sidebar-header">
+        <div class="app-icon">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+            <path d="M2 17l10 5 10-5"/>
+            <path d="M2 12l10 5 10-5"/>
+          </svg>
+        </div>
+        <span class="app-title">NovaBit Proxy</span>
+      </div>
+
+      <ul class="nav-list">
+        <li class="nav-item active" data-page="dashboard">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="7"/>
+            <rect x="14" y="3" width="7" height="7"/>
+            <rect x="14" y="14" width="7" height="7"/>
+            <rect x="3" y="14" width="7" height="7"/>
+          </svg>
+          <span>仪表盘</span>
+        </li>
+        <li class="nav-item" data-page="settings">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+          </svg>
+          <span>设置</span>
+        </li>
+        <li class="nav-item" data-page="client">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/>
+            <line x1="12" y1="18" x2="12" y2="18"/>
+          </svg>
+          <span>客户端</span>
+        </li>
+        <li class="nav-item" data-page="deploy">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+            <polyline points="22 4 12 14.01 9 11.01"/>
+          </svg>
+          <span>部署</span>
+        </li>
+        <li class="nav-item" data-page="guide">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+          </svg>
+          <span>教程</span>
+        </li>
+      </ul>
+
+      <div class="sidebar-footer">
+        <div class="connection-status" id="connectionStatus">
+          <div class="status-dot disconnected"></div>
+          <span>未连接</span>
+        </div>
+      </div>
+    </nav>
+
+    <!-- 主内容区 -->
+    <main class="content">
+      <!-- 仪表盘页面 -->
+      <div class="page active" id="page-dashboard">
+        <div class="page-header">
+          <h1>仪表盘</h1>
+          <button class="btn btn-sm btn-outline" id="btnRefresh">
+            <svg class="refresh-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="23 4 23 10 17 10"/>
+              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+            </svg>
+            <span class="btn-text">刷新</span>
+          </button>
+        </div>
+
+        <div class="dashboard-grid">
+          <!-- 连接状态卡片 -->
+          <div class="card card-status">
+            <div class="card-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M5 12.55a11 11 0 0 1 14.08 0"/>
+                <path d="M1.42 9a16 16 0 0 1 21.16 0"/>
+                <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
+                <line x1="12" y1="20" x2="12" y2="20"/>
+              </svg>
+            </div>
+            <div class="card-content">
+              <div class="card-label">连接状态</div>
+              <div class="card-value" id="dashConnectionState">未连接</div>
+            </div>
+          </div>
+
+          <!-- 当前模式卡片 -->
+          <div class="card card-mode">
+            <div class="card-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              </svg>
+            </div>
+            <div class="card-content">
+              <div class="card-label">当前模式</div>
+              <div class="card-value" id="dashCurrentMode">--</div>
+            </div>
+          </div>
+
+          <!-- 出口 IP 卡片 -->
+          <div class="card card-ip">
+            <div class="card-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="2" y1="12" x2="22" y2="12"/>
+                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+              </svg>
+            </div>
+            <div class="card-content">
+              <div class="card-label">出口 IP</div>
+              <div class="card-value" id="dashExitIP">--</div>
+            </div>
+          </div>
+
+          <!-- 模式切换 -->
+          <div class="card card-switch">
+            <div class="card-title">模式切换</div>
+            <div class="mode-switch">
+              <button class="mode-btn active" id="btnModeIspProxy" data-mode="proxy">
+                <div class="mode-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                  </svg>
+                </div>
+                <div class="mode-info">
+                  <div class="mode-name">ISP 代理</div>
+                  <div class="mode-desc">出口以当前配置为准</div>
+                </div>
+              </button>
+              <button class="mode-btn" id="btnModeDirect" data-mode="direct">
+                <div class="mode-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="2" y1="12" x2="22" y2="12"/>
+                  </svg>
+                </div>
+                <div class="mode-info">
+                  <div class="mode-name">直连</div>
+                  <div class="mode-desc">VPS 直接出口</div>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          <!-- 快速操作 -->
+          <div class="card card-actions">
+            <div class="card-title">快速操作</div>
+            <div class="action-buttons">
+              <button class="btn btn-outline" id="btnVerifyIP">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                  <circle cx="12" cy="12" r="3"/>
+                </svg>
+                <span class="btn-text">验证出口 IP</span>
+              </button>
+              <button class="btn btn-outline" id="btnCheckXray">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                  <polyline points="22 4 12 14.01 9 11.01"/>
+                </svg>
+                <span class="btn-text">检查 Xray 状态</span>
+              </button>
+              <button class="btn btn-outline" id="btnOptimizeXray">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M4 14a8 8 0 0 1 13.66-5.66L20 10"/>
+                  <polyline points="20 4 20 10 14 10"/>
+                  <path d="M20 10a8 8 0 0 1-13.66 5.66L4 14"/>
+                  <polyline points="4 20 4 14 10 14"/>
+                </svg>
+                <span class="btn-text">修复并优化配置</span>
+              </button>
+            </div>
+            <p class="action-hint">部署时已自动应用全部优化，无需重复点击。<strong>修复并优化配置</strong>仅在升级旧版本遗留配置、或 VPS 内核参数被重置（如更换内核）时使用；它只就地更新配置并重启 Xray，不会重新生成密钥，客户端配置不受影响。</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 设置页面 -->
+      <div class="page" id="page-settings">
+        <div class="page-header">
+          <h1>设置</h1>
+        </div>
+
+        <div class="settings-section">
+          <h2>VPS 连接</h2>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>主机地址</label>
+              <input type="text" id="vpsHost" placeholder="例如: 123.45.67.89">
+            </div>
+            <div class="form-group">
+              <label>端口</label>
+              <input type="text" id="vpsPort" value="22" placeholder="22">
+            </div>
+            <div class="form-group">
+              <label>用户名</label>
+              <input type="text" id="vpsUsername" value="root" placeholder="root">
+            </div>
+            <div class="form-group">
+              <label>认证方式</label>
+              <select id="vpsAuthType">
+                <option value="password">密码</option>
+                <option value="key">SSH 密钥</option>
+              </select>
+            </div>
+            <div class="form-group" id="vpsPasswordGroup">
+              <label>密码</label>
+              <input type="password" id="vpsPassword" placeholder="输入密码">
+            </div>
+            <div class="form-group hidden" id="vpsKeyGroup">
+              <label>私钥路径</label>
+              <input type="text" id="vpsPrivateKey" placeholder="~/.ssh/id_rsa">
+            </div>
+          </div>
+          <div class="form-actions">
+            <button class="btn btn-outline" id="btnTestSSH">测试连接</button>
+            <button class="btn btn-primary" id="btnSaveVPS">保存</button>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <h2>ISP 代理配置</h2>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>代理地址</label>
+              <input type="text" id="ispProxyAddress" placeholder="例如: 198.51.100.10">
+            </div>
+            <div class="form-group">
+              <label>端口</label>
+              <input type="text" id="ispProxyPort" placeholder="例如: 12324">
+            </div>
+            <div class="form-group">
+              <label>用户名</label>
+              <input type="text" id="ispProxyUsername" placeholder="用户名">
+            </div>
+            <div class="form-group">
+              <label>密码</label>
+              <input type="password" id="ispProxyPassword" placeholder="密码">
+            </div>
+          </div>
+          <div class="form-actions">
+            <button class="btn btn-primary" id="btnSaveIspProxy">保存</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 客户端页面 -->
+      <div class="page" id="page-client">
+        <div class="page-header">
+          <h1>客户端配置</h1>
+        </div>
+
+        <div class="client-section">
+          <div class="client-info-box">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="12" y1="16" x2="12" y2="12"/>
+              <line x1="12" y1="8" x2="12" y2="8"/>
+            </svg>
+            <span>需要先完成部署才能生成客户端配置</span>
+          </div>
+
+          <div class="qr-section" id="qrSection" style="display: none;">
+            <h2>扫码导入</h2>
+            <div class="qr-container">
+              <canvas id="qrCanvas"></canvas>
+            </div>
+            <p class="qr-hint">使用客户端扫描二维码导入节点参数</p>
+          </div>
+
+          <div class="config-section" id="configSection" style="display: none;">
+            <h2>VLESS 链接</h2>
+            <div class="config-link-box">
+              <textarea id="vlessLink" readonly rows="3"></textarea>
+              <button class="btn btn-sm btn-outline" id="btnCopyLink">复制</button>
+            </div>
+            <p class="config-hint" id="clientImportHint">二维码/VLESS 链接只包含节点参数；微信直连和 DNS 优化仅在复制完整配置并导入 v2rayN/v2rayNG 等支持完整 JSON 的客户端后生效。</p>
+
+            <div class="config-actions">
+              <button class="btn btn-sm btn-success" id="btnRegenerateConfig">重新生成配置</button>
+              <button class="btn btn-sm btn-primary" id="btnCopyFullConfig">复制完整配置（含微信直连优化）</button>
+            </div>
+
+            <h2>手动配置参数</h2>
+            <div class="config-table">
+              <table>
+                <tbody id="configTableBody">
+                </tbody>
+              </table>
+            </div>
+
+            <h2>推荐客户端</h2>
+            <div class="client-apps">
+              <div class="client-app">
+                <div class="client-app-name">Windows</div>
+                <div class="client-app-list">V2rayN / Clash Verge Rev</div>
+              </div>
+              <div class="client-app">
+                <div class="client-app-name">macOS</div>
+                <div class="client-app-list">V2rayN / Clash Verge Rev</div>
+              </div>
+              <div class="client-app">
+                <div class="client-app-name">Android</div>
+                <div class="client-app-list">V2rayNG</div>
+              </div>
+              <div class="client-app">
+                <div class="client-app-name">iOS</div>
+                <div class="client-app-list">Shadowrocket ($2.99)</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 部署页面 -->
+      <div class="page" id="page-deploy">
+        <div class="page-header">
+          <h1>一键部署</h1>
+        </div>
+
+        <div class="deploy-section">
+          <div class="deploy-info">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="12" y1="16" x2="12" y2="12"/>
+              <line x1="12" y1="8" x2="12" y2="8"/>
+            </svg>
+            <span>部署将在 VPS 上安装 Xray 并配置代理链路。请确保已填写 VPS 和 ISP 代理配置。</span>
+          </div>
+
+          <div class="deploy-checklist">
+            <div class="check-item" id="checkVPS">
+              <div class="check-icon">○</div>
+              <span>VPS 连接配置</span>
+            </div>
+            <div class="check-item" id="checkIspProxy">
+              <div class="check-icon">○</div>
+              <span>ISP 代理配置</span>
+            </div>
+          </div>
+
+          <button class="btn btn-primary btn-lg" id="btnDeploy" disabled>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+              <polyline points="22 4 12 14.01 9 11.01"/>
+            </svg>
+            开始部署
+          </button>
+
+          <div class="deploy-log" id="deployLog" style="display: none;">
+            <h3>部署日志</h3>
+            <div class="log-content" id="logContent"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 教程页面 -->
+      <div class="page" id="page-guide">
+        <div class="page-header">
+          <h1>使用教程</h1>
+        </div>
+
+        <div class="guide-content">
+          <!-- 快速开始 -->
+          <div class="guide-section">
+            <h2>快速开始</h2>
+            <div class="guide-steps">
+              <div class="guide-step">
+                <div class="step-number">1</div>
+                <div class="step-content">
+                  <h3>配置 VPS 连接</h3>
+                  <p>进入<strong>设置</strong>页面，填入你的 VPS 信息：</p>
+                  <ul>
+                    <li>主机地址（IP 或域名）</li>
+                    <li>SSH 端口（默认 22）</li>
+                    <li>用户名（通常为 root）</li>
+                    <li>认证方式：密码或 SSH 密钥</li>
+                  </ul>
+                  <p class="tip">点击"测试连接"确认能正常连接到 VPS</p>
+                </div>
+              </div>
+
+              <div class="guide-step">
+                <div class="step-number">2</div>
+                <div class="step-content">
+                  <h3>配置 ISP 代理</h3>
+                  <p>在设置页面下方填入你购买的 ISP 代理信息：</p>
+                  <ul>
+                    <li>代理地址（如 198.51.100.10）</li>
+                    <li>端口号</li>
+                    <li>用户名和密码</li>
+                  </ul>
+                  <p class="tip">请以代理服务商后台提供的地址、端口、用户名和密码为准</p>
+                </div>
+              </div>
+
+              <div class="guide-step">
+                <div class="step-number">3</div>
+                <div class="step-content">
+                  <h3>一键部署</h3>
+                  <p>进入<strong>部署</strong>页面，点击"开始部署"按钮。</p>
+                  <p>系统将自动完成以下操作：</p>
+                  <ul>
+                    <li>安装 Xray-core</li>
+                    <li>生成 VLESS + Reality 配置</li>
+                    <li>配置 ISP 代理和直连两种模式</li>
+                    <li>启用 BBR 拥塞控制优化</li>
+                    <li>配置防火墙规则</li>
+                  </ul>
+                  <p class="tip">部署过程约需 2-5 分钟，请耐心等待</p>
+                </div>
+              </div>
+
+              <div class="guide-step">
+                <div class="step-number">4</div>
+                <div class="step-content">
+                  <h3>获取客户端配置</h3>
+                  <p>部署完成后，进入<strong>客户端</strong>页面：</p>
+                  <ul>
+                    <li>扫描二维码或复制 VLESS 链接只会导入节点参数，适合普通连接测试</li>
+                    <li><strong>重新生成配置</strong>：部署信息变更、重新部署或需要刷新微信直连和 DNS 优化时使用，会根据当前 VPS 参数重新生成 VLESS 链接和完整 JSON</li>
+                    <li><strong>复制完整配置</strong>：复制包含微信直连、国内直连、DNS 分流和 MUX 关闭设置的完整 JSON，推荐用于 v2rayN/v2rayNG 系列客户端</li>
+                  </ul>
+                  <p>完整 JSON 导入步骤：</p>
+                  <ol>
+                    <li>在<strong>客户端</strong>页面点击<strong>重新生成配置</strong>，确认没有报错。</li>
+                    <li>点击<strong>复制完整配置（含微信直连优化）</strong>。</li>
+                    <li>新建一个文本文件，粘贴刚复制的内容，保存为 <code>novabit-proxy.json</code>；如果系统先保存成 <code>.txt</code>，请把后缀改为 <code>.json</code>。</li>
+                    <li>电脑使用：在 v2rayN 桌面端选择本地导入/从文件导入配置，选择刚保存的 <code>novabit-proxy.json</code>。</li>
+                    <li>手机使用：把 <code>novabit-proxy.json</code> 通过 AirDrop、数据线、网盘或聊天工具发送到手机，在 v2rayNG 中选择本地导入/从文件导入并选中该 JSON。</li>
+                    <li>导入后启用新配置；如果列表里有旧配置，优先选择名称最新或重新导入的完整配置。</li>
+                  </ol>
+                  <p class="tip">微信直连和 DNS 优化只存在于完整 JSON 中，单独扫描二维码或导入 VLESS 链接不会带上这些规则。</p>
+                </div>
+              </div>
+
+              <div class="guide-step">
+                <div class="step-number">5</div>
+                <div class="step-content">
+                  <h3>模式切换</h3>
+                  <p>在<strong>仪表盘</strong>页面可以随时切换代理模式：</p>
+                  <ul>
+                    <li><strong>ISP 代理模式</strong>：流量通过已配置的 ISP 代理出口，IP 显示为代理服务商出口</li>
+                    <li><strong>直连模式</strong>：流量直接从 VPS 出口，IP 显示为 VPS 地址</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div class="guide-step">
+                <div class="step-number">6</div>
+                <div class="step-content">
+                  <h3>修复并优化配置（可选）</h3>
+                  <p><strong>这一步通常不需要做。</strong>一键部署生成的配置已经包含全部优化项（BBR、连接池策略、嗅探、Reality 目标域名、分流规则），部署完成后即处于最优状态。</p>
+                  <p><strong>何时使用：</strong>仅在以下情况才需要点击<strong>仪表盘 → 快速操作 → 修复并优化配置</strong>：</p>
+                  <ul>
+                    <li>VPS 上运行的是旧版本应用部署的遗留配置，需要补齐新增字段</li>
+                    <li>VPS 内核参数被重置（例如更换过内核），需要重新应用 BBR 与 TCP Fast Open</li>
+                    <li>手动编辑过 Xray 配置，希望恢复为应用推荐的标准结构</li>
+                  </ul>
+                  <p>点击后应用会自动连接 VPS，并依次执行以下工作：</p>
+                  <ul>
+                    <li>配置并验证 BBR、<code>fq</code> 队列和 TCP Fast Open；是否能启用取决于 VPS 内核支持情况。</li>
+                    <li>更新 Xray 的连接策略，迁移旧版 DNS 配置，并先校验目标配置。</li>
+                    <li>以安全方式替换配置、重启 Xray 并检查服务；启动校验失败时会尝试恢复操作前的配置。</li>
+                  </ul>
+                  <p class="tip"><strong>注意：</strong>不要用「重新部署」来代替这一步——部署会重新生成 UUID 和密钥，导致所有客户端配置失效。修复并优化配置只就地改配置并重启 Xray，<strong>密钥不变，客户端无感知</strong>。</p>
+                  <p><strong>使用前：</strong>会短暂重启 Xray，请避开正在进行的通话、传输或其他不能中断的连接；VPS 账号需要具备修改系统参数和重启服务的权限。</p>
+                  <p><strong>完成后：</strong>等待“修复完成”提示，再点击<strong>检查 Xray 状态</strong>和<strong>验证出口 IP</strong>。VLESS 链接不会因此改变；若你使用完整 JSON 客户端配置，请在<strong>客户端</strong>页重新生成并导入完整配置，以同步新版客户端 DNS 分流规则。</p>
+                  <p><strong>失败处理：</strong>先查看提示中的失败步骤，确认 SSH、VPS 权限和 Xray 服务状态后再重试。应用会在 Xray 启动校验失败时尝试回滚，但仍建议用“检查 Xray 状态”确认服务已恢复。</p>
+                  <p class="tip">优化可以改善拥塞控制和配置一致性，但不能消除 VPS 路线、ISP 代理质量或本地网络本身造成的速度限制。</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 架构说明 -->
+          <div class="guide-section">
+            <h2>架构说明</h2>
+            <div class="guide-architecture">
+              <pre class="architecture-diagram">
+用户设备 (Windows/macOS/Android/iOS)
+        │
+        │ VLESS + Reality (加密传输)
+        ▼
+VPS 服务器运行 Xray-core
+        │
+        │ SOCKS5 代理
+        ▼
+ISP 代理服务器（以当前配置为准）
+        │
+        ▼
+目标网站</pre>
+              <p class="guide-note">采用 VLESS + Reality 协议，具有更好的隐蔽性和抗封锁能力</p>
+            </div>
+          </div>
+
+          <!-- 常见问题 -->
+          <div class="guide-section">
+            <h2>常见问题</h2>
+            <div class="guide-faq">
+              <div class="faq-item">
+                <div class="faq-question">
+                  <span>部署失败怎么办？</span>
+                  <svg class="faq-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="6 9 12 15 18 9"/>
+                  </svg>
+                </div>
+                <div class="faq-answer">
+                  <p>常见原因及解决方法：</p>
+                  <ul>
+                    <li>VPS 系统不是 Debian/Ubuntu - 建议使用 Ubuntu 20.04+</li>
+                    <li>SSH 连接不稳定 - 检查网络，尝试使用密钥认证</li>
+                    <li>端口被占用 - 确保 443 端口未被其他服务占用</li>
+                    <li>内存不足 - 建议至少 512MB 内存</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div class="faq-item">
+                <div class="faq-question">
+                  <span>如何更新 Xray 版本？</span>
+                  <svg class="faq-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="6 9 12 15 18 9"/>
+                  </svg>
+                </div>
+                <div class="faq-answer">
+                  <p>连接 VPS 后，SSH 执行以下命令：</p>
+                  <code>bash -c "$(curl -L https://github.com/XTLS/Xray-install/raw/main/install-release.sh)" @ install</code>
+                  <p>更新后需重启：systemctl restart xray</p>
+                </div>
+              </div>
+
+              <div class="faq-item">
+                <div class="faq-question">
+                  <span>连接速度慢怎么优化？</span>
+                  <svg class="faq-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="6 9 12 15 18 9"/>
+                  </svg>
+                </div>
+                <div class="faq-answer">
+                  <p>优化建议：</p>
+                  <ul>
+                    <li>确保 BBR 已启用（部署时自动配置）</li>
+                    <li>选择距离较近的 VPS 节点</li>
+                    <li>VLESS + Reality + Vision 节点请关闭 MUX</li>
+                    <li>避免高峰时段使用</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div class="faq-item">
+                <div class="faq-question">
+                  <span>微信或国内访问慢怎么办？</span>
+                  <svg class="faq-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="6 9 12 15 18 9"/>
+                  </svg>
+                </div>
+                <div class="faq-answer">
+                  <p>通常是客户端只导入了节点参数，微信直连和 DNS 优化没有生效。解决步骤：</p>
+                  <ul>
+                    <li>不要只扫描二维码或导入 VLESS 链接；这两种方式只包含节点参数，不包含国内直连和 DNS 分流规则。</li>
+                    <li>进入<strong>客户端</strong>页面，先点击<strong>重新生成配置</strong>，再点击<strong>复制完整配置</strong>。</li>
+                    <li>把复制的内容保存为 <code>novabit-proxy.json</code>，在 v2rayN/v2rayNG 中选择本地导入/从文件导入该完整 JSON。</li>
+                    <li>导入后启用新配置，确认正在使用完整 JSON 配置，而不是旧的二维码或 VLESS 链接配置。</li>
+                    <li>完整 JSON 内置微信直连和 DNS 优化，微信、腾讯和国内访问会优先直连，国外及 OpenAI 相关流量仍按代理规则处理。</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div class="faq-item">
+                <div class="faq-question">
+                  <span>ISP 代理和直连模式有什么区别？</span>
+                  <svg class="faq-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="6 9 12 15 18 9"/>
+                  </svg>
+                </div>
+                <div class="faq-answer">
+                  <ul>
+                    <li><strong>ISP 代理模式</strong>：出口 IP 为当前配置的代理服务商出口，适合需要特定地区 IP 的场景</li>
+                    <li><strong>直连模式</strong>：出口 IP 为 VPS 本身的 IP，速度更快，适合普通访问</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 免责声明 -->
+          <div class="guide-section disclaimer-section">
+            <h2>免责声明</h2>
+            <div class="disclaimer">
+              <p><strong>请在使用前仔细阅读以下声明：</strong></p>
+              <ol>
+                <li>本工具仅供学习和研究使用，请勿用于任何违法违规用途。</li>
+                <li>使用者应遵守所在国家/地区的法律法规，因使用本工具产生的一切法律责任由使用者自行承担。</li>
+                <li>本工具不保证服务的稳定性、安全性和可用性，使用者应自行承担使用风险。</li>
+                <li>本工具不对因使用或无法使用本工具所导致的任何直接或间接损失承担责任。</li>
+                <li>使用本工具即表示您已充分理解并同意上述声明。</li>
+              </ol>
+            </div>
+          </div>
+
+          <!-- 作者信息 -->
+          <div class="guide-section">
+            <div class="footer-info">
+              <span class="footer-author">NovaBit</span>
+              <span class="footer-divider">·</span>
+              <span class="footer-version">NovaBit Proxy v1.2.16</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- 通知 -->
+  <div class="notification" id="notification">
+    <div class="notification-content">
+      <span id="notificationText"></span>
+    </div>
+  </div>
+
+  <!-- Components -->
+  <script src="components/notify.js"></script>
+  <script src="components/dashboard.js"></script>
+  <script src="components/settings.js"></script>
+  <script src="components/client.js"></script>
+  <script src="components/deploy.js"></script>
+  <script src="components/guide.js"></script>
+  <script src="renderer.js"></script>
+</body>
+</html>

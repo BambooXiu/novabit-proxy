@@ -1,0 +1,73 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#2d5a27"/>
+      <stop offset="100%" stop-color="#1a3a16"/>
+    </linearGradient>
+    <linearGradient id="bamboo" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#8BC34A"/>
+      <stop offset="50%" stop-color="#689F38"/>
+      <stop offset="100%" stop-color="#558B2F"/>
+    </linearGradient>
+    <linearGradient id="leaf" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#AED581"/>
+      <stop offset="100%" stop-color="#7CB342"/>
+    </linearGradient>
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-opacity="0.3"/>
+    </filter>
+    <clipPath id="rounded">
+      <rect width="1024" height="1024" rx="220"/>
+    </clipPath>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1024" height="1024" rx="220" fill="url(#bg)"/>
+
+  <!-- Subtle pattern -->
+  <g clip-path="url(#rounded)" opacity="0.08">
+    <line x1="0" y1="0" x2="1024" y2="1024" stroke="white" stroke-width="1"/>
+    <line x1="200" y1="0" x2="1024" y2="824" stroke="white" stroke-width="1"/>
+    <line x1="400" y1="0" x2="1024" y2="624" stroke="white" stroke-width="1"/>
+    <line x1="0" y1="200" x2="824" y2="1024" stroke="white" stroke-width="1"/>
+    <line x1="0" y1="400" x2="624" y2="1024" stroke="white" stroke-width="1"/>
+  </g>
+
+  <!-- Main bamboo stalk -->
+  <g filter="url(#shadow)">
+    <rect x="460" y="180" width="104" height="620" rx="52" fill="url(#bamboo)"/>
+    <!-- Bamboo joints -->
+    <rect x="450" y="310" width="124" height="24" rx="12" fill="#558B2F"/>
+    <rect x="450" y="470" width="124" height="24" rx="12" fill="#558B2F"/>
+    <rect x="450" y="630" width="124" height="24" rx="12" fill="#558B2F"/>
+  </g>
+
+  <!-- Bamboo leaves -->
+  <g filter="url(#shadow)">
+    <!-- Right leaf cluster -->
+    <ellipse cx="640" cy="300" rx="120" ry="40" transform="rotate(-25 640 300)" fill="url(#leaf)" opacity="0.9"/>
+    <ellipse cx="680" cy="360" rx="100" ry="32" transform="rotate(-15 680 360)" fill="url(#leaf)" opacity="0.8"/>
+    <ellipse cx="620" cy="420" rx="90" ry="28" transform="rotate(-30 620 420)" fill="url(#leaf)" opacity="0.7"/>
+
+    <!-- Left leaf cluster -->
+    <ellipse cx="380" cy="380" rx="110" ry="36" transform="rotate(20 380 380)" fill="url(#leaf)" opacity="0.9"/>
+    <ellipse cx="340" cy="440" rx="95" ry="30" transform="rotate(30 340 440)" fill="url(#leaf)" opacity="0.8"/>
+    <ellipse cx="400" cy="520" rx="80" ry="26" transform="rotate(15 400 520)" fill="url(#leaf)" opacity="0.7"/>
+  </g>
+
+  <!-- Proxy symbol: connected nodes -->
+  <g transform="translate(512, 870)" filter="url(#shadow)">
+    <!-- Center node -->
+    <circle cx="0" cy="0" r="36" fill="#E8F5E9" stroke="#81C784" stroke-width="4"/>
+    <!-- Left node -->
+    <circle cx="-80" cy="30" r="28" fill="#E8F5E9" stroke="#81C784" stroke-width="4"/>
+    <!-- Right node -->
+    <circle cx="80" cy="30" r="28" fill="#E8F5E9" stroke="#81C784" stroke-width="4"/>
+    <!-- Connection lines -->
+    <line x1="-20" y1="20" x2="-55" y2="28" stroke="#A5D6A7" stroke-width="5" stroke-linecap="round"/>
+    <line x1="20" y1="20" x2="55" y2="28" stroke="#A5D6A7" stroke-width="5" stroke-linecap="round"/>
+    <!-- Small dots on lines -->
+    <circle cx="-38" cy="24" r="6" fill="#C8E6C9"/>
+    <circle cx="38" cy="24" r="6" fill="#C8E6C9"/>
+  </g>
+</svg>
