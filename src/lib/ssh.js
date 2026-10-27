@@ -1,7 +1,11 @@
 const { Client } = require('ssh2');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
 
 class SSHManager {
-  constructor() {
+  constructor({ hostVerifier } = {}) {
+    this.hostVerifier = hostVerifier;
     this.conn = null;
     this.connected = false;
     this.config = null;
@@ -104,14 +108,18 @@ class SSHManager {
         keepaliveInterval: 10000,
         keepaliveCountMax: 3,
       };
-
-      if (config.privateKey) {
-        connConfig.privateKey = config.privateKey;
-      } else if (config.password) {
-        connConfig.password = config.password;
-      }
+      if (this.hostVerifier) connConfig.hostVerifier = this.hostVerifier;
 
       try {
+        if (config.privateKey) {
+          const key = config.privateKey.trim();
+          const keyPath = key.startsWith('~/') || key.startsWith('~\\')
+            ? path.join(os.homedir(), key.slice(2))
+            : key;
+          connConfig.privateKey = key.includes('-----BEGIN ') ? key : fs.readFileSync(keyPath);
+        } else if (config.password) {
+          connConfig.password = config.password;
+        }
         conn.connect(connConfig);
       } catch (error) {
         const message = connectionError(error.message);

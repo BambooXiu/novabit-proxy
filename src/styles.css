@@ -386,6 +386,18 @@ body {
 }
 
 /* ==================== Forms ==================== */
+.ssh-key-guide {
+  margin-top: 24px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.ssh-key-guide h3 { font-size: 14px; margin: 0; }
+.ssh-key-guide .form-actions { flex-wrap: wrap; }
+.ssh-key-guide .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.ssh-key-guide [role="status"] { overflow-wrap: anywhere; }
+
 .settings-section {
   margin-bottom: 32px;
 }

@@ -3,6 +3,7 @@ const path = require('path');
 const QRCode = require('qrcode');
 const { SSHManager } = require('./src/lib/ssh');
 const { ConfigManager } = require('./src/lib/config');
+const { SSHKeySetup } = require('./src/lib/ssh-key-setup');
 const {
   createServerConfig,
   generateClientConfig,
@@ -12,6 +13,7 @@ const {
 let mainWindow;
 const sshManager = new SSHManager();
 const configManager = new ConfigManager({ safeStorage });
+const sshKeySetup = new SSHKeySetup({ configManager });
 const REMOTE_COMMAND_TIMEOUT = {
   standard: 30000,
   service: 60000,
@@ -296,6 +298,42 @@ ipcMain.handle('ssh:connect', wrapHandler(async (event, vpsConfig) => {
 
 ipcMain.handle('ssh:disconnect', wrapHandler(async () => {
   return sshManager.disconnect();
+}));
+
+ipcMain.handle('ssh:setup-key', wrapHandler(async (event, vpsConfig) => {
+  return sshKeySetup.setup(vpsConfig);
+}));
+
+ipcMain.handle('ssh:disable-password', wrapHandler(async (event, vpsConfig) => {
+  const loaded = configManager.load();
+  if (!loaded.success) return loaded;
+  const saved = loaded.data.vps;
+  if (!saved.privateKey || ['host', 'port', 'username', 'privateKey'].some((field) => String(saved[field]) !== String(vpsConfig[field]))) {
+    return { success: false, error: '请先保存当前 VPS 的密钥设置，再关闭密码登录' };
+  }
+  const answer = await dialog.showMessageBox(mainWindow, {
+    type: 'warning', buttons: ['取消', '验证并关闭密码登录'], defaultId: 0, cancelId: 0,
+    message: `关闭 ${saved.username}@${saved.host}:${saved.port} 的 SSH 密码登录？`,
+    detail: '此操作修改服务器默认 SSH 策略，可能影响其他管理用户。请先备份私钥并确认可使用服务商控制台恢复。应用会重新验证密钥；失败时回滚，端口不变。仅支持 root、OpenSSH 配置目录及 systemd。',
+    noLink: true,
+  });
+  if (answer.response !== 1) return { success: false, cancelled: true };
+  return sshKeySetup.disablePassword(saved);
+}));
+
+ipcMain.handle('ssh:reveal-key', wrapHandler(async (event, keyPath) => {
+  const fs = require('fs');
+  const loaded = configManager.load();
+  if (!loaded.success) return loaded;
+  const savedPath = loaded.data.vps.privateKey;
+  if (!savedPath || savedPath.includes('-----BEGIN ') || keyPath !== savedPath) {
+    return { success: false, error: '请先保存私钥文件路径' };
+  }
+  const resolved = savedPath.startsWith('~/') || savedPath.startsWith('~\\')
+    ? path.join(require('os').homedir(), savedPath.slice(2)) : path.resolve(savedPath);
+  if (!fs.statSync(resolved).isFile()) return { success: false, error: '私钥文件不存在' };
+  shell.showItemInFolder(resolved);
+  return { success: true };
 }));
 
 // Xray 管理

@@ -311,15 +311,15 @@ function testRealitySniChanged() {
   });
 
   const reality = ispProxyConfig.inbounds[0].streamSettings.realitySettings;
-  assert.strictEqual(reality.dest, 'www.apple.com:443');
-  assert.deepStrictEqual(reality.serverNames, ['www.apple.com', 'apple.com']);
+  assert.strictEqual(reality.dest, 'www.bing.com:443');
+  assert.deepStrictEqual(reality.serverNames, ['www.bing.com', 'bing.com']);
 
   const generated = generateClientConfig(sample);
   const fullConfig = JSON.parse(generated.fullConfig);
   const proxy = getProxyOutbound(fullConfig);
-  assert.strictEqual(proxy.streamSettings.realitySettings.serverName, 'www.apple.com');
-  assert.match(generated.vlessLink, /sni=www\.apple\.com/);
-  assert.strictEqual(generated.manual.sni, 'www.apple.com');
+  assert.strictEqual(proxy.streamSettings.realitySettings.serverName, 'www.bing.com');
+  assert.match(generated.vlessLink, /sni=www\.bing\.com/);
+  assert.strictEqual(generated.manual.sni, 'www.bing.com');
 }
 
 function testPackageLockVersionMatchesPackageVersion() {
@@ -1025,12 +1025,15 @@ async function testDashboardOptimizationFailureDoesNotReportSuccess() {
   );
 }
 
-function loadSSHManager(FakeClient) {
+function loadSSHManager(FakeClient, homeDir = os.homedir()) {
   const source = fs.readFileSync(path.join(__dirname, '..', 'src', 'lib', 'ssh.js'), 'utf8');
   const module = { exports: {} };
   vm.runInNewContext(source, {
     require(request) {
       if (request === 'ssh2') return { Client: FakeClient };
+      if (request === 'fs') return fs;
+      if (request === 'path') return path;
+      if (request === 'os') return { homedir: () => homeDir };
       throw new Error(`Unexpected dependency: ${request}`);
     },
     module,
@@ -1205,10 +1208,107 @@ async function testSuccessfulSSHProbeDoesNotMarkTheDashboardAsConnected() {
   assert.deepStrictEqual(dashboardCalls, [], 'a probe disconnects immediately and must not set dashboard connection state');
 }
 
-function loadMainHandlers(sshResults) {
+async function testSSHKeyPathsAndInlineKeysDoNotFallBackToPasswords() {
+  const homeDir = fs.mkdtempSync(path.join(os.tmpdir(), 'novabit-ssh-key-'));
+  const keyPath = path.join(homeDir, 'private key');
+  const key = '-----BEGIN OPENSSH PRIVATE KEY-----\nfixture\n-----END OPENSSH PRIVATE KEY-----';
+  const connections = [];
+  class FakeClient extends EventEmitter {
+    connect(options) { connections.push(options); setTimeout(() => this.emit('ready'), 0); }
+    end() {}
+  }
+  try {
+    fs.writeFileSync(keyPath, key, { mode: 0o600 });
+    const SSHManager = loadSSHManager(FakeClient, homeDir);
+    for (const value of [keyPath, '~/private key', key]) {
+      const manager = new SSHManager();
+      const result = await manager.connect({ host: 'example.test', username: 'root', privateKey: value, password: 'unused' });
+      assert.strictEqual(result.success, true);
+      assert.strictEqual(connections.at(-1).privateKey.toString(), key);
+      assert.strictEqual(connections.at(-1).password, undefined);
+      manager.disconnect();
+    }
+    const manager = new SSHManager();
+    const missing = await manager.connect({ host: 'example.test', privateKey: path.join(homeDir, 'missing'), password: 'unused' });
+    assert.strictEqual(missing.success, false, 'an unreadable key must return an error rather than fall back to password authentication');
+    assert.strictEqual(connections.length, 3);
+  } finally {
+    fs.rmSync(homeDir, { recursive: true, force: true });
+  }
+}
+
+async function testSettingsPreserveKeyAuthenticationWhenSaving() {
+  const source = fs.readFileSync(path.join(__dirname, '..', 'src', 'components', 'settings.js'), 'utf8');
+  const elements = new Map();
+  let saved;
+  const context = {
+    window: {
+      App: { notify() {}, deploy: { updateDeployChecklist() {} } },
+      api: { config: { save: async (config) => { saved = config; return { success: true }; } } },
+    },
+    document: { getElementById(id) {
+      if (!elements.has(id)) elements.set(id, {
+        value: '', hidden: false, listeners: {},
+        addEventListener(event, callback) { this.listeners[event] = callback; },
+        classList: { toggle(name, hidden) { elements.get(id).hidden = hidden; } },
+      });
+      return elements.get(id);
+    } },
+  };
+  context.App = context.window.App;
+  vm.runInNewContext(source, context, { filename: 'settings.js' });
+  const config = { vps: { host: 'example.test', port: '22', username: 'root', password: '', privateKey: '~/.ssh/dedicated' }, ispProxy: sample.ispProxy };
+  context.App.settings.init(config);
+  context.App.settings.fillForm(config);
+  assert.strictEqual(elements.get('vpsAuthType').value, 'key');
+  assert.strictEqual(elements.get('vpsKeyGroup').hidden, false);
+  assert.strictEqual(elements.get('vpsPasswordGroup').hidden, true);
+  await elements.get('btnSaveVPS').listeners.click();
+  assert.strictEqual(saved.vps.privateKey, '~/.ssh/dedicated');
+  assert.strictEqual(saved.vps.password, '');
+  context.App.settings.fillForm({ ...config, vps: { ...config.vps, privateKey: '', password: 'fixture' } });
+  assert.strictEqual(elements.get('vpsAuthType').value, 'password');
+  assert.strictEqual(elements.get('vpsKeyGroup').hidden, true);
+}
+
+function testServerLogsDisableAccessAndKeepErrorsAcrossModesAndMigration() {
+  for (const mode of ['proxy', 'direct']) {
+    const config = createServerConfig({ ...sample, mode });
+    assert.strictEqual(config.log.access, 'none');
+    assert.strictEqual(config.log.dnsLog, false);
+    assert.strictEqual(config.log.error, '/var/log/xray/error.log');
+    assert.strictEqual(config.log.loglevel, 'warning');
+  }
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'novabit-log-migration-'));
+  try {
+    const modes = path.join(root, 'modes');
+    const bin = path.join(root, 'bin');
+    fs.mkdirSync(modes); fs.mkdirSync(bin);
+    const files = [path.join(root, 'config.json'), path.join(modes, 'direct.json'), path.join(modes, 'proxy.json')];
+    for (const file of files) fs.writeFileSync(file, JSON.stringify({
+      log: { access: '/old/access.log', dnsLog: true, error: '/custom/error.log', loglevel: 'error' },
+      inbounds: [], outbounds: [],
+    }));
+    fs.writeFileSync(path.join(bin, 'xray'), '#!/bin/sh\nexit 0\n', { mode: 0o755 });
+    const script = generateOptimizeScript()
+      .replace("CONFIG = '/usr/local/etc/xray/config.json'", `CONFIG = ${JSON.stringify(files[0])}`)
+      .replace("MODES_DIR = '/usr/local/etc/xray/modes'", `MODES_DIR = ${JSON.stringify(modes)}`);
+    execFileSync('/bin/sh', ['-c', script], { env: { ...process.env, PATH: `${bin}:${process.env.PATH}` } });
+    for (const file of files) {
+      const config = JSON.parse(fs.readFileSync(file, 'utf8'));
+      assert.deepStrictEqual(config.log, { access: 'none', dnsLog: false, error: '/custom/error.log', loglevel: 'error' });
+    }
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+}
+
+function loadMainHandlers(sshResults, { savedVps = {}, confirmation = 0 } = {}) {
   const source = fs.readFileSync(path.join(__dirname, '..', 'main.js'), 'utf8');
   const handlers = new Map();
   const calls = [];
+  const keyCalls = [];
+  const confirmations = [];
   const safeStorage = { isEncryptionAvailable: () => true };
   let configManagerOptions;
 
@@ -1230,7 +1330,7 @@ function loadMainHandlers(sshResults) {
     },
     BrowserWindow: class {},
     ipcMain: { handle(channel, handler) { handlers.set(channel, handler); } },
-    dialog: {},
+    dialog: { async showMessageBox(owner, options) { confirmations.push(options); return { response: confirmation }; } },
     shell: { openExternal() {} },
     safeStorage,
   };
@@ -1241,12 +1341,17 @@ function loadMainHandlers(sshResults) {
       if (request === 'electron') return electron;
       if (request === 'qrcode') return { toDataURL: async () => '' };
       if (request === './src/lib/ssh') return { SSHManager: FakeSSHManager };
+      if (request === './src/lib/ssh-key-setup') return { SSHKeySetup: class {
+        async setup(config) { keyCalls.push(['setup', config]); return { success: true }; }
+        async disablePassword(config) { keyCalls.push(['disable', config]); return { success: true }; }
+      } };
       if (request === './src/lib/config') {
         return {
           ConfigManager: class {
             constructor(options) {
               configManagerOptions = options;
             }
+            load() { return { success: true, data: { vps: savedVps } }; }
           },
         };
       }
@@ -1262,7 +1367,28 @@ function loadMainHandlers(sshResults) {
     setTimeout,
   }, { filename: 'main.js' });
 
-  return { handlers, calls, configManagerOptions, safeStorage };
+  return { handlers, calls, configManagerOptions, safeStorage, keyCalls, confirmations };
+}
+
+async function testPasswordPolicyRequiresSavedKeyAndExplicitConfirmation() {
+  const savedVps = { host: 'example.test', port: '22', username: 'root', password: '', privateKey: '/test/key' };
+  const invalid = loadMainHandlers([], { savedVps });
+  assert.strictEqual((await invalid.handlers.get('ssh:disable-password')({}, { ...savedVps, host: 'other.test' })).success, false);
+  assert.strictEqual(invalid.confirmations.length, 0);
+  assert.strictEqual(invalid.keyCalls.length, 0);
+  const cancelled = loadMainHandlers([], { savedVps, confirmation: 0 });
+  assert.strictEqual((await cancelled.handlers.get('ssh:disable-password')({}, savedVps)).cancelled, true);
+  assert.strictEqual(cancelled.keyCalls.length, 0);
+  assert.strictEqual(cancelled.confirmations[0].defaultId, 0);
+  const confirmed = loadMainHandlers([], { savedVps, confirmation: 1 });
+  assert.strictEqual((await confirmed.handlers.get('ssh:disable-password')({}, savedVps)).success, true);
+  assert.strictEqual(confirmed.keyCalls[0][0], 'disable');
+  assert.strictEqual(confirmed.keyCalls[0][1], savedVps);
+  const setup = loadMainHandlers([]);
+  await setup.handlers.get('ssh:setup-key')({}, savedVps);
+  assert.strictEqual(setup.keyCalls.length, 1);
+  assert.strictEqual(setup.keyCalls[0][0], 'setup');
+  assert.strictEqual(setup.confirmations.length, 0);
 }
 
 function testMainInjectsSystemSafeStorageIntoConfigManager() {
@@ -1426,7 +1552,7 @@ function testBrandingAndVersionAreGenericNovaBit() {
   const visibleText = html.replace(/<[^>]+>/g, ' ');
 
   assert.strictEqual(packageJson.name, 'novabit-proxy');
-  assert.strictEqual(packageJson.version, '1.2.16');
+  assert.strictEqual(packageJson.version, '1.2.19');
   assert.strictEqual(packageLock.name, packageJson.name);
   assert.strictEqual(packageLock.version, packageJson.version);
   assert.strictEqual(packageLock.packages[''].name, packageJson.name);
@@ -1437,8 +1563,38 @@ function testBrandingAndVersionAreGenericNovaBit() {
   assert.strictEqual(packageJson.build.dmg.title, 'NovaBit Proxy');
   assert.strictEqual(packageJson.build.nsis.shortcutName, 'NovaBit Proxy');
 
+  // DMG 必须是「可拖拽安装」的标准镜像：背景图 + /Applications 软链 + 图标坐标
+  assert.strictEqual(
+    packageJson.build.dmg.background,
+    'assets/dmg-background.png',
+    'DMG 必须配置背景图'
+  );
+  const dmgAssets = ['dmg-background.png', 'dmg-background@2x.png'];
+  for (const name of dmgAssets) {
+    assert.ok(
+      fs.existsSync(path.join(__dirname, '..', 'assets', name)),
+      `DMG 背景图资源缺失：assets/${name}`
+    );
+  }
+  const applicationsLink = (packageJson.build.dmg.contents || []).find(
+    (item) => item.type === 'link' && item.path === '/Applications'
+  );
+  assert.ok(
+    applicationsLink,
+    'DMG 必须包含指向 /Applications 的软链，否则无法拖拽安装'
+  );
+  assert.ok(
+    typeof applicationsLink.x === 'number' && typeof applicationsLink.y === 'number',
+    'Applications 软链必须有明确坐标（与背景图箭头对齐）'
+  );
+  assert.strictEqual(
+    packageJson.build.dmg.iconSize,
+    96,
+    'DMG 图标尺寸需与模板测试断言保持一致'
+  );
+
   assert.match(html, /<title>NovaBit Proxy<\/title>/);
-  assert.match(visibleText, /NovaBit Proxy v1\.2\.16/);
+  assert.match(visibleText, /NovaBit Proxy v1\.2\.19/);
   assert.doesNotMatch(visibleText, /VPS Proxy(?: Manager)?/);
   assert.ok(
     fs.existsSync(path.join(__dirname, '..', 'assets', 'novabit-proxy-icon.icns')),
@@ -1522,7 +1678,11 @@ async function runTests() {
     testSSHExecTimesOutAndClosesTheChannel,
     testSSHTestConnectionFailsWhenItsProbeCommandFails,
     testSuccessfulSSHProbeDoesNotMarkTheDashboardAsConnected,
+    testSSHKeyPathsAndInlineKeysDoNotFallBackToPasswords,
+    testSettingsPreserveKeyAuthenticationWhenSaving,
+    testServerLogsDisableAccessAndKeepErrorsAcrossModesAndMigration,
     testMainInjectsSystemSafeStorageIntoConfigManager,
+    testPasswordPolicyRequiresSavedKeyAndExplicitConfirmation,
     testDeploymentStopsWhenAnyRemoteStepFails,
     testOptimizationStopsWhenAnyRemoteStepFails,
     testModeSwitchValidatesAndRollsBackOnServiceFailure,

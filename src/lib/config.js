@@ -80,23 +80,33 @@ class ConfigManager {
   }
 
   save(config) {
+    let temporaryDir;
     try {
       this.ensureDir();
       const encryption = this.getEncryption();
-      this.config = this.normalize(config);
-      const encrypted = encryption.encryptString(JSON.stringify(this.config));
+      const normalized = this.normalize(config);
+      const encrypted = encryption.encryptString(JSON.stringify(normalized));
       const stored = {
         storageVersion: STORAGE_VERSION,
         encryptedConfig: Buffer.from(encrypted).toString('base64'),
       };
-      fs.writeFileSync(this.configFile, JSON.stringify(stored, null, 2), {
+      temporaryDir = fs.mkdtempSync(path.join(this.configDir, '.config-save-'));
+      const temporaryFile = path.join(temporaryDir, 'config.json');
+      fs.writeFileSync(temporaryFile, JSON.stringify(stored, null, 2), {
         encoding: 'utf-8',
         mode: 0o600,
       });
-      fs.chmodSync(this.configFile, 0o600);
+      fs.chmodSync(temporaryFile, 0o600);
+      fs.renameSync(temporaryFile, this.configFile);
+      this.config = normalized;
       return { success: true };
     } catch (error) {
       return { success: false, error: error.message };
+    } finally {
+      if (temporaryDir) {
+        try { fs.rmSync(temporaryDir, { recursive: true, force: true }); }
+        catch (_) { /* 清理失败不改变已经完成的保存结果。 */ }
+      }
     }
   }
 

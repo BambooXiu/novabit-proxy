@@ -1,4 +1,4 @@
-const REALITY_SNI = 'www.apple.com';
+const REALITY_SNI = 'www.bing.com';
 
 const RECOMMENDED_POLICY = {
   handshake: 12,
@@ -180,8 +180,9 @@ function createServerConfig({ mode, uuid, privateKey, shortId, ispProxy }) {
   return {
     log: {
       loglevel: 'warning',
-      access: '/var/log/xray/access.log',
+      access: 'none',
       error: '/var/log/xray/error.log',
+      dnsLog: false,
     },
     dns: createDns(),
     inbounds: [createInbound({ uuid, privateKey, shortId })],
@@ -412,6 +413,11 @@ def optimize(path):
         return
     with open(path) as f:
         cfg = json.load(f)
+
+    # 不记录访问目标或 DNS 查询；保留错误日志用于排障。
+    log = cfg.setdefault('log', {})
+    log['access'] = 'none'
+    log['dnsLog'] = False
 
     for inbound in cfg.get('inbounds', []):
         stream_settings = inbound.setdefault('streamSettings', {})

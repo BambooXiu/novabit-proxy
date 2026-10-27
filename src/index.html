@@ -237,6 +237,17 @@
             <button class="btn btn-outline" id="btnTestSSH">测试连接</button>
             <button class="btn btn-primary" id="btnSaveVPS">保存</button>
           </div>
+          <div class="ssh-key-guide">
+            <h3>启用 SSH 密钥登录（推荐，可选）</h3>
+            <p class="action-hint">首次使用填写服务器密码，点击下方按钮即可。应用会在本机生成专用密钥、安装公钥，并用独立连接验证，成功后自动保存。服务器密码登录策略保持不变。</p>
+            <div class="form-actions">
+              <button class="btn btn-outline" id="btnSetupSSHKey">生成并启用专用密钥</button>
+              <button class="btn btn-outline" id="btnRevealSSHKey">打开密钥位置</button>
+              <button class="btn btn-outline" id="btnDisableSSHPassword">关闭服务器密码登录…</button>
+            </div>
+            <p class="action-hint" id="sshKeyStatus" role="status" aria-live="polite">尚未配置密钥，可使用密码首次连接。</p>
+            <p class="action-hint">私钥保存在本机用户目录，不会上传服务器；服务器只保存公钥。请将私钥另行备份到受保护的位置，勿发给他人或提交 Git。换电脑需恢复私钥并重新选择路径。关闭密码登录后，私钥丢失需通过服务商控制台恢复。</p>
+          </div>
         </div>
 
         <div class="settings-section">
@@ -625,7 +636,7 @@ ISP 代理服务器（以当前配置为准）
             <div class="footer-info">
               <span class="footer-author">NovaBit</span>
               <span class="footer-divider">·</span>
-              <span class="footer-version">NovaBit Proxy v1.2.16</span>
+              <span class="footer-version">NovaBit Proxy v1.2.19</span>
             </div>
           </div>
         </div>

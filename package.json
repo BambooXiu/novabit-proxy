@@ -1,11 +1,11 @@
 {
   "name": "novabit-proxy",
-  "version": "1.2.16",
+  "version": "1.2.19",
   "description": "NovaBit Proxy - 一键管理 VPS 代理模式切换",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "test": "node scripts/test-config-generation.js",
+    "test": "node scripts/test-config-generation.js && node scripts/test-ssh-key-setup.js",
     "build": "electron-builder --mac",
     "build:dmg": "electron-builder --mac dmg",
     "build:win": "electron-builder --win"
@@ -23,6 +23,11 @@
   "build": {
     "appId": "com.novabit.proxy",
     "productName": "NovaBit Proxy",
+    "files": [
+      "main.js",
+      "preload.js",
+      "src/**/*"
+    ],
     "mac": {
       "category": "public.app-category.utilities",
       "icon": "assets/novabit-proxy-icon.icns",
@@ -58,19 +63,25 @@
     },
     "dmg": {
       "title": "NovaBit Proxy",
+      "icon": "assets/novabit-proxy-icon.icns",
+      "background": "assets/dmg-background.png",
+      "iconSize": 96,
+      "iconTextSize": 13,
       "contents": [
         {
-          "x": 130,
-          "y": 220
+          "x": 135,
+          "y": 180
         },
         {
-          "x": 410,
-          "y": 220,
+          "x": 405,
+          "y": 180,
           "type": "link",
           "path": "/Applications"
         }
       ],
       "window": {
+        "x": 400,
+        "y": 200,
         "width": 540,
         "height": 380
       }

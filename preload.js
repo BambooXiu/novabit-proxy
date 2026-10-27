@@ -12,6 +12,9 @@ contextBridge.exposeInMainWorld('api', {
     test: (vpsConfig) => ipcRenderer.invoke('ssh:test', vpsConfig),
     connect: (vpsConfig) => ipcRenderer.invoke('ssh:connect', vpsConfig),
     disconnect: () => ipcRenderer.invoke('ssh:disconnect'),
+    setupKey: (vpsConfig) => ipcRenderer.invoke('ssh:setup-key', vpsConfig),
+    disablePassword: (vpsConfig) => ipcRenderer.invoke('ssh:disable-password', vpsConfig),
+    revealKey: (keyPath) => ipcRenderer.invoke('ssh:reveal-key', keyPath),
     optimize: (vpsConfig) => ipcRenderer.invoke('ssh:optimize', vpsConfig),
     onStatusChange: (callback) => {
       ipcRenderer.on('ssh:status-change', (event, status) => callback(status));

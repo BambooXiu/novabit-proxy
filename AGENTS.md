@@ -80,7 +80,7 @@ npm run build
 
 位于 `src/lib/xray-config.js`：
 
-- `REALITY_SNI = 'www.apple.com'` - Reality 协议握手域名。
+- `REALITY_SNI = 'www.bing.com'` - Reality 协议握手域名（勿改回 apple.com，xray 官方警告会显著提升被封概率）。
 - `OPENAI_PROXY_DOMAINS` - OpenAI 域名路由规则。
 - `RECOMMENDED_POLICY` - 连接池/超时设置。
 
